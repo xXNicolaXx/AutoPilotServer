@@ -1,9 +1,9 @@
 import socket
 import sys
-import time
 import datetime
 
-HOST = '192.168.1.8'  # this is your localhost
+
+HOST = '192.168.0.176'  # this is your localhost
 PORT = 8888
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -31,8 +31,8 @@ while True:
     data = data + buf
     if len(buf) < 4096:
         date_string = str(datetime.datetime.now().timestamp()).replace('.', '')
-        f = open('./images/' + date_string + '.jpg', 'wb')
-        f.write(data)
-        f.close()
-        data = b''
-        conn.send(str.encode("OK\n"))
+        with open('./images/' + date_string + '.jpg', 'wb') as f:
+            f.write(data)
+            f.close()
+            data = b''
+            conn.send(str.encode("OK\n"))
