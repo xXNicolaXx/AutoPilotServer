@@ -1,9 +1,10 @@
 import socket
 import sys
 import datetime
+import time
 
 
-HOST = '192.168.0.176'  # this is your localhost
+HOST = '192.168.1.8'  # this is your localhost
 PORT = 8888
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -26,13 +27,24 @@ print('Socket is now listening')
 conn, addr = s.accept()
 print('Connect with ' + addr[0] + ':' + str(addr[1]))
 data = b''
+queueArray = []
+dateArray = []
 while True:
     buf = conn.recv(4096)
-    data = data + buf
-    if len(buf) < 4096:
+    if buf:
+        data = data + buf
+    else:
+        queueArray.append(data)
         date_string = str(datetime.datetime.now().timestamp()).replace('.', '')
-        with open('./images/' + date_string + '.jpg', 'wb') as f:
-            f.write(data)
-            f.close()
-            data = b''
-            conn.send(str.encode("OK\n"))
+        dateArray.append(date_string)
+        data = b''
+        conn.send(str.encode("OK\n"))
+    if len(queueArray) >= 100:
+        break
+for index, item in enumerate(queueArray):
+    with open('./images/' + dateArray[index] + '.txt', 'wb') as f:
+        f.write(item)
+print("Finish")
+
+
+
