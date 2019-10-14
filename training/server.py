@@ -30,19 +30,20 @@ data = b''
 queueArray = []
 dateArray = []
 while True:
-    buf = conn.recv(4096)
-    if buf:
+    buf = conn.recv(8192)
+
+    if buf[-3:] != b'eof':
         data = data + buf
     else:
+        data = data + buf[:-3]
         queueArray.append(data)
         date_string = str(datetime.datetime.now().timestamp()).replace('.', '')
         dateArray.append(date_string)
         data = b''
-        conn.send(str.encode("OK\n"))
     if len(queueArray) >= 100:
         break
 for index, item in enumerate(queueArray):
-    with open('./images/' + dateArray[index] + '.txt', 'wb') as f:
+    with open('./images/' + dateArray[index] + '.jpg', 'wb') as f:
         f.write(item)
 print("Finish")
 
