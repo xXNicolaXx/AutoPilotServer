@@ -2,9 +2,26 @@ import socket
 import sys
 import datetime
 import csv
+from keras.models import load_model
+import cv2
+from PIL import Image
+from io import BytesIO
+import numpy as np
 
 HOST = '192.168.0.176'  # this is your localhost
 PORT = 8888
+MODE = "TRAINING"
+model = load_model("NvidiaModel")
+
+
+def img_preprocess(img):
+    img = img[60:135, :, :]
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+    img = cv2.GaussianBlur(img, (3, 3), 0)
+    img = cv2.resize(img, (200, 66))
+    img = img / 255
+    return img
+
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # socket.socket: must use to create a socket.
@@ -29,29 +46,52 @@ data = b''
 imageArray = []
 dateArray = []
 directionArray = []
-while True:
-    buf = conn.recv(8192)
 
-    if buf[-3:] != b'eof':
-        data = data + buf
-    else:
-        data = data + buf[:-4]
-        direction = buf[-4:len(buf) - 3].decode('utf-8')
-        directionArray.append(direction)
-        imageArray.append(data)
-        date_string = str(datetime.datetime.now().timestamp()).replace('.', '')
-        dateArray.append(date_string)
-        data = b''
-    if len(imageArray) >= 10:
-        break
-print("Saving collected images")
-for index, item in enumerate(imageArray):
-    with open('./images/' + dateArray[index] + '.jpg', 'wb') as f:
-        f.write(item)
-print("Saving data to csv")
-with open('data.csv', 'w') as writeFile:
-    writer = csv.writer(writeFile, delimiter=',', quotechar='|')
-    for index, item in enumerate(dateArray):
-        writer.writerow(['images/' + item + '.jpg', str(directionArray[index])])
+if MODE == "TRAINING":
 
-print("Finish")
+    # TRAINING MODE
+    while True:
+        buf = conn.recv(8192)
+
+        if buf[-3:] != b'eof':
+            data = data + buf
+        else:
+            data = data + buf[:-4]
+            direction = buf[-4:len(buf) - 3].decode('utf-8')
+            directionArray.append(direction)
+            imageArray.append(data)
+            date_string = str(datetime.datetime.now().timestamp()).replace('.', '')
+            dateArray.append(date_string)
+            data = b''
+        if len(imageArray) >= 1000:
+            break
+    print("Saving collected images")
+    for index, item in enumerate(imageArray):
+        with open('./images/' + dateArray[index] + '.jpg', 'wb') as f:
+            f.write(item)
+    print("Saving data to csv")
+    with open('data.csv', 'w') as writeFile:
+        writer = csv.writer(writeFile, delimiter=',', quotechar='|')
+        for index, item in enumerate(dateArray):
+            writer.writerow(['images/' + item + '.jpg', str(directionArray[index])])
+
+    print("Finish")
+
+else:
+
+    # AI MODE
+    while True:
+        buf = conn.recv(8192)
+
+        if buf[-3:] != b'eof':
+            data = data + buf
+        else:
+            data = data + buf[:-3]
+
+            image = Image.open(BytesIO(bytearray(data)))
+            image = np.asarray(image)
+            image = img_preprocess(image)
+            image = np.array([image])
+            steering_angle = str(model.predict(image))
+            conn.send(str.encode('{0}\n'.format(steering_angle)))
+            data = b''
