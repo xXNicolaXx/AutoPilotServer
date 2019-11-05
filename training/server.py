@@ -10,8 +10,8 @@ import numpy as np
 
 HOST = str(sys.argv[1])  # this is your localhost
 PORT = int(sys.argv[2])
-mode = str(sys.argv[3])
-print("Mode:", mode)
+MODE = str(sys.argv[3])
+print("Mode:", MODE)
 
 
 # model = load_model("NvidiaModel")
@@ -50,7 +50,7 @@ imageArray = []
 dateArray = []
 directionArray = []
 
-if mode == "TRAINING":
+if MODE == "TRAINING":
 
     # TRAINING MODE
     while True:
