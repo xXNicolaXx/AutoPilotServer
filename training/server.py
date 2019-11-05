@@ -2,16 +2,19 @@ import socket
 import sys
 import datetime
 import csv
-from keras.models import load_model
+# from keras.models import load_model
 import cv2
 from PIL import Image
 from io import BytesIO
 import numpy as np
 
-HOST = '192.168.0.176'  # this is your localhost
-PORT = 8888
-MODE = "TRAINING"
-model = load_model("NvidiaModel")
+HOST = str(sys.argv[1])  # this is your localhost
+PORT = int(sys.argv[2])
+mode = str(sys.argv[3])
+print("Mode:", mode)
+
+
+# model = load_model("NvidiaModel")
 
 
 def img_preprocess(img):
@@ -47,7 +50,7 @@ imageArray = []
 dateArray = []
 directionArray = []
 
-if MODE == "TRAINING":
+if mode == "TRAINING":
 
     # TRAINING MODE
     while True:
