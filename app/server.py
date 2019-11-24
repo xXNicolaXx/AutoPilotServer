@@ -2,7 +2,7 @@ import socket
 import sys
 import datetime
 import csv
-# from keras.models import load_model
+from keras.models import load_model
 import cv2
 from PIL import Image
 from io import BytesIO
@@ -14,7 +14,7 @@ MODE = str(sys.argv[3])
 print("Mode:", MODE)
 
 
-# model = load_model("NvidiaModel")
+model = load_model("../model/nvidiaModel_long_train.h5")
 
 
 def img_preprocess(img):
@@ -52,10 +52,11 @@ directionArray = []
 
 if MODE == "TRAINING":
 
+    direction = "4"
+    drive = True
     # TRAINING MODE
-    while True:
+    while drive:
         buf = conn.recv(8192)
-
         if buf[-3:] != b'eof':
             data = data + buf
         else:
@@ -66,7 +67,7 @@ if MODE == "TRAINING":
             date_string = str(datetime.datetime.now().timestamp()).replace('.', '')
             dateArray.append(date_string)
             data = b''
-        if len(imageArray) >= 1000:
+        if direction == "9":
             break
     print("Saving collected images")
     for index, item in enumerate(imageArray):
@@ -95,6 +96,13 @@ else:
             image = np.asarray(image)
             image = img_preprocess(image)
             image = np.array([image])
-            steering_angle = str(model.predict(image))
+            steering_angle = str(model.predict_classes(image))
+            steering_angle = steering_angle[1:-1]
             conn.send(str.encode('{0}\n'.format(steering_angle)))
+            if steering_angle == "0":
+                print("left")
+            elif steering_angle == "1":
+                print("forward")
+            elif steering_angle == "2":
+                print("right")
             data = b''
