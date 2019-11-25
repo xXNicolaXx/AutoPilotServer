@@ -108,7 +108,11 @@ def image_brightness(image):
 def flip_image(image, steering_angle):
     # We need to "flip" also the steering angle as the image as flipped
     image = cv2.flip(image, 1)
-    steering_angle = -steering_angle
+    if steering_angle == "0":
+        steering_angle = "2"
+    elif steering_angle == "2":
+        steering_angle = "0"
+
     return image, steering_angle
 
 
@@ -159,6 +163,7 @@ def batch_generator(image_paths, steering_angles, batch_size, is_training):
 
 
 def nvidia_model():
+    import keras
     """
         NVIDIA model used
         Image normalization to avoid saturation and make gradients work better.
@@ -177,6 +182,7 @@ def nvidia_model():
         dropout avoids overfitting
         ELU(Exponential linear unit) function takes care of the Vanishing gradient problem.
         """
+
     model = Sequential()
     model.add(Conv2D(filters=24, kernel_size=(5, 5), strides=(2, 2), input_shape=(66, 200, 3), activation="elu"))
     model.add(Conv2D(filters=36, kernel_size=(5, 5), strides=(2, 2), activation="elu"))
@@ -191,7 +197,7 @@ def nvidia_model():
     model.add(Dense(units=3, activation='softmax'))
 
     optimizer = Adam(lr=1e-4)
-    model.compile(loss='mse', metrics=['accuracy'], optimizer=optimizer)
+    model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=optimizer)
 
     return model
 
@@ -209,7 +215,7 @@ history = nvidia_model.fit_generator(batch_generator(X_train, y_train, 32, True)
                                      epochs=30,
                                      validation_data=batch_generator(X_valid, y_valid, 32, False),
                                      validation_steps=200,
-                                     verbose=1,
+                                     verbose=True,
                                      shuffle=True)
 
 print("--- trained in %s seconds ---" % (time.clock() - start_time))
@@ -219,4 +225,6 @@ plt.legend(['training', 'validation'])
 plt.title('Loss')
 plt.xlabel('Epoch')
 plt.show()
-nvidia_model.save('nvidiaModel_long_train.h5')
+nvidia_model.save('nvidiaModel.h5')
+
+

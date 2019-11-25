@@ -14,7 +14,7 @@ MODE = str(sys.argv[3])
 print("Mode:", MODE)
 
 
-model = load_model("../model/nvidiaModel_long_train.h5")
+model = load_model("../model/nvidiaModel.h5")
 
 
 def img_preprocess(img):
