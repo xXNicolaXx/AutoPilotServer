@@ -17,13 +17,12 @@ print("Mode:", MODE)
 model = load_model("../model/nvidiaModel.h5")
 
 
-def img_preprocess(img):
-    img = img[60:135, :, :]
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
-    img = cv2.GaussianBlur(img, (3, 3), 0)
-    img = cv2.resize(img, (200, 66))
-    img = img / 255
-    return img
+def img_preprocess(image):
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
+    image = cv2.GaussianBlur(image, (3, 3), 0)
+    image = cv2.resize(image, (200, 66))  # Image input size of the Nvidia model architecture
+    image = (image / 127.5) - 1
+    return image
 
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
