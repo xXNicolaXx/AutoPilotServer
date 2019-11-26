@@ -6,6 +6,7 @@ from keras.models import Sequential
 from keras.optimizers import Adam
 from keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense
 from keras.utils.np_utils import to_categorical
+from keras.callbacks import EarlyStopping
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 from imgaug import augmenters
@@ -14,6 +15,11 @@ import pandas as pd
 import ntpath
 import random
 import time
+import tensorflow as tf
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+session = tf.Session(config=config)
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 datadir = "../training/data/csv/"
@@ -23,8 +29,8 @@ data = pd.read_csv(os.path.join(datadir, "data.csv"), names=columns)
 pd.set_option("display.max_colwidth", -1)
 pd.set_option("display.max_columns", None)
 pd.set_option("display.width", None)
-num_bins = 25
-samples_per_bin = 2000
+num_bins = 3
+samples_per_bin = 400
 
 
 def path_leaf(path):
@@ -55,20 +61,20 @@ def show_initial_steering_data():
 
 
 show_all_data()
-# show_initial_steering_data()
+show_initial_steering_data()
 
-# hist, bins = np.histogram(data["direction"], num_bins)
-# remove_list = []
-# for i in range(num_bins):
-#     list_ = []
-#     for j in range(len(data["direction"])):
-#         if bins[i] <= data["direction"][j] <= bins[i + 1]:
-#             list_.append(j)
-#     list_ = shuffle(list_)
-#     list_ = list_[samples_per_bin:]
-#     remove_list.extend(list_)
-#
-# data.drop(data.index[remove_list], inplace=True)
+hist, bins = np.histogram(data["direction"], num_bins)
+remove_list = []
+for i in range(num_bins):
+    list_ = []
+    for j in range(len(data["direction"])):
+        if bins[i] <= data["direction"][j] <= bins[i + 1]:
+            list_.append(j)
+    list_ = shuffle(list_)
+    list_ = list_[samples_per_bin:]
+    remove_list.extend(list_)
+
+data.drop(data.index[remove_list], inplace=True)
 
 
 def show_modified_steering_data():
@@ -83,7 +89,6 @@ def show_modified_steering_data():
 
 
 def load_data():
-
     image_paths = data["image"].values
     steerings = data["direction"].values
 
@@ -107,11 +112,9 @@ def image_brightness(image):
 
 def flip_image(image, steering_angle):
     # We need to "flip" also the steering angle as the image as flipped
+
     image = cv2.flip(image, 1)
-    if steering_angle == "0":
-        steering_angle = "2"
-    elif steering_angle == "2":
-        steering_angle = "0"
+    steering_angle = steering_angle[::-1]
 
     return image, steering_angle
 
@@ -204,7 +207,7 @@ def nvidia_model():
 
 nvidia_model = nvidia_model()
 print(nvidia_model.summary())
-
+es = EarlyStopping(monitor='acc', mode='max', verbose=1)
 start_time = time.clock()
 # cut_image_path()
 X_train, X_valid, y_train, y_valid = load_data()
@@ -215,6 +218,7 @@ history = nvidia_model.fit_generator(batch_generator(X_train, y_train, 32, True)
                                      epochs=30,
                                      validation_data=batch_generator(X_valid, y_valid, 32, False),
                                      validation_steps=200,
+                                     callbacks=[es],
                                      verbose=True,
                                      shuffle=True)
 
@@ -226,5 +230,3 @@ plt.title('Loss')
 plt.xlabel('Epoch')
 plt.show()
 nvidia_model.save('nvidiaModel.h5')
-
-
