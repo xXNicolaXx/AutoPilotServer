@@ -17,13 +17,20 @@ import random
 import time
 import tensorflow as tf
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-session = tf.Session(config=config)
-
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        # Currently, memory growth needs to be the same across GPUs
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+        # Memory growth must be set before GPUs have been initialized
+        print(e)
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
-datadir = "../training/data/csv/"
-imagedir = "../training/data/images/"
+datadir = "../data/csv/"
+imagedir = "../data/images/"
 columns = ["image", "direction"]
 data = pd.read_csv(os.path.join(datadir, "data.csv"), names=columns)
 pd.set_option("display.max_colwidth", -1)
@@ -63,18 +70,18 @@ def show_initial_steering_data():
 show_all_data()
 show_initial_steering_data()
 
-hist, bins = np.histogram(data["direction"], num_bins)
-remove_list = []
-for i in range(num_bins):
-    list_ = []
-    for j in range(len(data["direction"])):
-        if bins[i] <= data["direction"][j] <= bins[i + 1]:
-            list_.append(j)
-    list_ = shuffle(list_)
-    list_ = list_[samples_per_bin:]
-    remove_list.extend(list_)
-
-data.drop(data.index[remove_list], inplace=True)
+# hist, bins = np.histogram(data["direction"], num_bins)
+# remove_list = []
+# for i in range(num_bins):
+#     list_ = []
+#     for j in range(len(data["direction"])):
+#         if bins[i] <= data["direction"][j] <= bins[i + 1]:
+#             list_.append(j)
+#     list_ = shuffle(list_)
+#     list_ = list_[samples_per_bin:]
+#     remove_list.extend(list_)
+#
+# data.drop(data.index[remove_list], inplace=True)
 
 
 def show_modified_steering_data():
@@ -120,7 +127,7 @@ def flip_image(image, steering_angle):
 
 
 def augment_image(image, steering_angle):
-    image = mpimg.imread("../training/data/" + image)
+    image = mpimg.imread("../data/" + image)
     if np.random.rand() < 0.5:
         image = pan_image(image)
     if np.random.rand() < 0.5:
@@ -156,7 +163,7 @@ def batch_generator(image_paths, steering_angles, batch_size, is_training):
 
                 image, steering_angle = augment_image(image, steering_angle)
             else:
-                image = mpimg.imread("../training/data/" + image)
+                image = mpimg.imread("../data/" + image)
                 steering_angle = steering_angle
 
             image = image_preprocess(image)
@@ -196,8 +203,8 @@ def nvidia_model():
 
     model.add(Dense(units=100, activation="elu"))
     model.add(Dense(units=50, activation="elu"))
-    model.add(Dense(units=10, activation="elu"))
-    model.add(Dense(units=3, activation='softmax'))
+    model.add(Dense(units=20, activation="elu"))
+    model.add(Dense(units=7, activation='softmax'))
 
     optimizer = Adam(lr=1e-4)
     model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=optimizer)
@@ -207,20 +214,21 @@ def nvidia_model():
 
 nvidia_model = nvidia_model()
 print(nvidia_model.summary())
-es = EarlyStopping(monitor='acc', mode='max', verbose=1)
 start_time = time.clock()
 # cut_image_path()
 X_train, X_valid, y_train, y_valid = load_data()
-y_train = to_categorical(y_train, 3)
-y_valid = to_categorical(y_valid, 3)
+y_train = to_categorical(y_train, 7)
+y_valid = to_categorical(y_valid, 7)
 history = nvidia_model.fit_generator(batch_generator(X_train, y_train, 32, True),
                                      steps_per_epoch=len(X_train),
                                      epochs=30,
                                      validation_data=batch_generator(X_valid, y_valid, 32, False),
                                      validation_steps=200,
-                                     callbacks=[es],
+                                     callbacks=[EarlyStopping(monitor='accuracy', mode='max', patience=5, verbose=1)],
                                      verbose=True,
-                                     shuffle=True)
+                                     shuffle=True,
+                                     use_multiprocessing=True,
+                                     workers=6)
 
 print("--- trained in %s seconds ---" % (time.clock() - start_time))
 plt.plot(history.history['loss'])
@@ -228,5 +236,5 @@ plt.plot(history.history['val_loss'])
 plt.legend(['training', 'validation'])
 plt.title('Loss')
 plt.xlabel('Epoch')
-plt.show()
+plt.savefig("loss_graph.png")
 nvidia_model.save('nvidiaModel.h5')

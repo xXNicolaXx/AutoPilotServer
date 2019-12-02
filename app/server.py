@@ -7,6 +7,7 @@ import cv2
 from PIL import Image
 from io import BytesIO
 import numpy as np
+import tensorflow as tf
 
 HOST = str(sys.argv[1])  # this is your localhost
 PORT = int(sys.argv[2])
@@ -14,9 +15,19 @@ MODE = str(sys.argv[3])
 print("Mode:", MODE)
 
 
-model = load_model("../model/nvidiaModel.h5")
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        # Currently, memory growth needs to be the same across GPUs
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+        # Memory growth must be set before GPUs have been initialized
+        print(e)
 
-
+modelN= tf.keras.models.load_model('../model/nvidiaModel.h5')
 def img_preprocess(image):
     image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
     image = cv2.GaussianBlur(image, (3, 3), 0)
