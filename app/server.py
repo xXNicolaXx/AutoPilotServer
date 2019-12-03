@@ -27,7 +27,7 @@ if gpus:
         # Memory growth must be set before GPUs have been initialized
         print(e)
 
-modelN= tf.keras.models.load_model('../model/nvidiaModel.h5')
+model = tf.keras.models.load_model('../model/nvidiaModel.h5')
 def img_preprocess(image):
     image = cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
     image = cv2.GaussianBlur(image, (3, 3), 0)
@@ -109,10 +109,10 @@ else:
             steering_angle = str(model.predict_classes(image))
             steering_angle = steering_angle[1:-1]
             conn.send(str.encode('{0}\n'.format(steering_angle)))
-            if steering_angle == "0":
+            if steering_angle == "0" or steering_angle == "1" or steering_angle == "2":
                 print("left")
-            elif steering_angle == "1":
+            elif steering_angle == "3":
                 print("forward")
-            elif steering_angle == "2":
+            elif steering_angle == "4" or steering_angle == "5" or steering_angle == "6":
                 print("right")
             data = b''

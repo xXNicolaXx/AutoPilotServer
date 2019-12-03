@@ -199,6 +199,7 @@ def nvidia_model():
     model.add(Conv2D(filters=48, kernel_size=(5, 5), strides=(2, 2), activation="elu"))
     model.add(Conv2D(filters=64, kernel_size=(3, 3), activation="elu"))
     model.add(Conv2D(filters=64, kernel_size=(3, 3), activation="elu"))
+    model.add(Dropout(0.2))
     model.add(Flatten())
 
     model.add(Dense(units=100, activation="elu"))
@@ -220,7 +221,7 @@ X_train, X_valid, y_train, y_valid = load_data()
 y_train = to_categorical(y_train, 7)
 y_valid = to_categorical(y_valid, 7)
 history = nvidia_model.fit_generator(batch_generator(X_train, y_train, 32, True),
-                                     steps_per_epoch=len(X_train),
+                                     steps_per_epoch=200,
                                      epochs=30,
                                      validation_data=batch_generator(X_valid, y_valid, 32, False),
                                      validation_steps=200,
